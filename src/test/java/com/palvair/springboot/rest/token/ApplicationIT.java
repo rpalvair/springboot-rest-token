@@ -17,6 +17,8 @@ import org.springframework.test.annotation.Timed;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palvair.springboot.rest.token.StatelessAuthenticationSecurityConfig;
 import com.palvair.springboot.rest.token.User;
 
@@ -31,14 +33,14 @@ public class ApplicationIT {
 	private String port;
 
 	@Test
-	@Timed(millis = 5000)
-	public void testToken() {
+	@Timed(millis = 10000)
+	public void testToken() throws JsonProcessingException {
 		HttpHeaders httpHeaders = getToken();
 		System.out.println("headers = " + httpHeaders);
 	}
 
 	@Test
-	public void testUserCurrent() {
+	public void testUserCurrent() throws JsonProcessingException {
 		HttpHeaders httpHeaders = getToken();
 		HttpEntity<String> testRequest = new HttpEntity<>(null, httpHeaders);
 		ResponseEntity<User> testResponse = restTemplate.exchange("http://localhost:" + port + "/api/users/current",
@@ -46,13 +48,17 @@ public class ApplicationIT {
 		Assert.assertEquals(HttpStatus.OK, testResponse.getStatusCode());
 	}
 
-	private HttpHeaders getToken() {
+	private HttpHeaders getToken() throws JsonProcessingException {
 		HttpHeaders httpHeaders = new HttpHeaders();
 		httpHeaders.setContentType(MediaType.APPLICATION_JSON);
 		String password = "admin";
 		String username = "admin";
+		final User user =  new User();
+		user.setUsername(username);
+		user.setPassword(password);
+		final String userJson = new ObjectMapper().writeValueAsString(user);
 		HttpEntity<String> login = new HttpEntity<>(
-				"{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}", httpHeaders);
+				userJson, httpHeaders);
 		ResponseEntity<Void> results = restTemplate.postForEntity("http://localhost:" + port + "/api/login", login,
 				Void.class);
 		Assert.assertEquals(HttpStatus.OK, results.getStatusCode());
